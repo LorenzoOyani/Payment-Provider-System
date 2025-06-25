@@ -9,6 +9,16 @@ public class PayStackProperties {
     private String url;
     private String secretKey;
 
+    public String getPublicKey() {
+        return publicKey;
+    }
+
+    public void setPublicKey(String publicKey) {
+        this.publicKey = publicKey;
+    }
+
+    private String publicKey;
+
 
     public String getUrl() {
         return url;

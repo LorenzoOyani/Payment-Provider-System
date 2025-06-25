@@ -1,17 +1,19 @@
-package org.example.paymentgateway.services;
+package org.example.paymentgateway.entities;
 
-import org.example.paymentgateway.entities.RiskLevel;
-import org.example.paymentgateway.entities.User;
+import org.example.paymentgateway.enums.RiskLevel;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.ArrayList;
+import java.io.Serial;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class UserPrincipal implements UserDetails {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
     private final int id;
     private final String email;
     private final String password;
@@ -28,6 +30,10 @@ public class UserPrincipal implements UserDetails {
         this.authorities = authority;
     }
 
+    /**
+     * @param user  a user object that is wrapped by the UserPrincipal object DTO.
+     * @return a UserPrincipal object.
+     * */
 
     public static UserPrincipal create(User user) {
         List<GrantedAuthority> authority = user.getRoles().stream()
@@ -82,7 +88,7 @@ public class UserPrincipal implements UserDetails {
         return UserDetails.super.isEnabled();
     }
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 

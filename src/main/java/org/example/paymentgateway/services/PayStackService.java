@@ -8,16 +8,19 @@ import org.example.paymentgateway.dto.InitializePaymentResponse;
 import org.example.paymentgateway.dto.PaymentRequest;
 import org.example.paymentgateway.dto.PaymentResponse;
 import org.example.paymentgateway.entities.*;
-import org.example.paymentgateway.entities.Currency;
+import org.example.paymentgateway.enums.Currency;
+import org.example.paymentgateway.enums.PaymentProvider;
+import org.example.paymentgateway.enums.PaymentStatus;
 import org.example.paymentgateway.exception.PaymentException;
 import org.example.paymentgateway.mapper.PaymentMapper;
 import org.example.paymentgateway.repositories.PaymentRepository;
 import org.example.paymentgateway.repositories.UserRepository;
 
+import org.example.paymentgateway.services.paymentServices.PaymentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -69,6 +72,7 @@ public class PayStackService implements PaymentService {
                     log.error("Failed to find user with email: {}", request.getCustomerEmail());
                     return new UsernameNotFoundException("User not found for email: " + request.getCustomerEmail());
                 });
+
         try {
             int amountInKobo = computeAmountInKobo(request.getAmount());
 
@@ -111,6 +115,7 @@ public class PayStackService implements PaymentService {
                     throw new PaymentException("invalid payment data");
                 }
 
+                @SuppressWarnings(value = "unchecked")
                 PaymentDto paymentDto = PaymentDto.builder()
                         .withReference(getSafeFromMap(paymentData, "reference", String.class))
                         .withAmount(getSafeFromMap(paymentData, "amount", BigDecimal.class))

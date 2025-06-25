@@ -1,4 +1,4 @@
-package org.example.paymentgateway.services;
+package org.example.paymentgateway.repositories;
 
 public interface PaymentProviderValidator {
 

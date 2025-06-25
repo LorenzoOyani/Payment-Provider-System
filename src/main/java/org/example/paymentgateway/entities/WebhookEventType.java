@@ -1,0 +1,14 @@
+package org.example.paymentgateway.entities;
+
+public enum WebhookEventType {
+    CHARGE_SUCCESS,
+    CHARGE_FAILED,
+    CHARGE_COMPLETED,
+    TRANSFER_SUCCESS,
+    TRANSFER_FAILED,
+    SUBSCRIPTION_CREATE,
+    SUBSCRIPTION_DISABLE,
+    INVOICE_CREATE,
+    INVOICE_UPDATE,
+    INVOICE_PAYMENT_FAILED
+}

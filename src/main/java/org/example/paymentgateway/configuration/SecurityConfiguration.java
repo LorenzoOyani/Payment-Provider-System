@@ -1,7 +1,8 @@
 package org.example.paymentgateway.configuration;
 
-import org.example.paymentgateway.services.JwtAuthenticationFilter;
-import org.example.paymentgateway.services.UserService;
+import org.example.paymentgateway.security.JwtAuthenticationEntryPoint;
+import org.example.paymentgateway.security.JwtAuthenticationFilter;
+import org.example.paymentgateway.services.CustomUserDetailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,7 +34,7 @@ import java.util.List;
 )
 public class SecurityConfiguration {
 
-    private final UserService userService;
+    private final CustomUserDetailService userService;
 
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
@@ -41,7 +42,7 @@ public class SecurityConfiguration {
 
 
     @Autowired
-    SecurityConfiguration(UserService userService, JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint, JwtAuthenticationFilter jwtAuthenticationFilter) {
+    SecurityConfiguration(CustomUserDetailService userService, JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint, JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.userService = userService;
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;

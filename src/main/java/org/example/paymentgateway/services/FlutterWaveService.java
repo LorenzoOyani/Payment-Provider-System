@@ -2,10 +2,11 @@ package org.example.paymentgateway.services;
 
 import org.example.paymentgateway.configuration.FlutterProperties;
 import org.example.paymentgateway.dto.*;
-import org.example.paymentgateway.entities.PaymentProvider;
-import org.example.paymentgateway.entities.PaymentStatus;
+import org.example.paymentgateway.enums.PaymentProvider;
+import org.example.paymentgateway.enums.PaymentStatus;
 import org.example.paymentgateway.exception.PaymentException;
 import org.example.paymentgateway.exception.PaymentVerificationException;
+import org.example.paymentgateway.services.paymentServices.PaymentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,7 +77,7 @@ public class FlutterWaveService implements PaymentService {
     }
 
     private Map<String, Object> buildPayload(PaymentRequest request) {
-//        log.info("Building payload for createPayment...");
+        /* log.info("Building payload for createPayment..."); */
         Map<String, Object> payload = new HashMap<>();
         payload.put("tx_ref", request.getReference());
         payload.put("amount", request.getAmount());
@@ -99,13 +100,12 @@ public class FlutterWaveService implements PaymentService {
     }
 
     private PaymentStatus mapStatus(String paymentStatus) {
-//        log.info("Mapping payment status: " + paymentStatus);
         return switch (paymentStatus) {
             case "success" -> PaymentStatus.SUCCESS;
             case "failed" -> PaymentStatus.FAILURE;
             case "pending" -> PaymentStatus.PENDING;
             default -> {
-//                log.warn("Unknown payment status encountered: " + paymentStatus);
+                log.warn("not a valid payment status");
                 throw new PaymentException("Unknown payment status " + paymentStatus);
             }
         };
@@ -118,19 +118,16 @@ public class FlutterWaveService implements PaymentService {
             throw new PaymentException("Invalid response from flutterWave");
         }
         FlutterWaveResponse response = responseEntity.getBody();
-        if (!"success".equalsIgnoreCase(response.getStatus())) {
-//            log.warn("FlutterWave payment failed with message: " + response.getMessage());
+        /* log.info("Successfully processed response. Building InitializePaymentResponse..."); */
+        //            log.warn("FlutterWave payment failed with message:" + response.getMessage());
+        if (!"success".equalsIgnoreCase(response.getStatus()))
             throw new PaymentException("flutterWave payment failed with  " + response.getMessage());
-        } else {
-
-//        log.info("Successfully processed response. Building InitializePaymentResponse...");
-            return InitializePaymentResponse.builder()
-                    .authorizationUrl(response.getDetails().getLink())
-                    .reference(response.getDetails().getTxRef())
-                    .provider(PaymentProvider.FLUTTERWAVE)
-                    .status(mapStatus(response.getDetails().getStatus().name()))
-                    .build();
-        }
+        else return InitializePaymentResponse.builder()
+                .authorizationUrl(response.getDetails().getLink())
+                .reference(response.getDetails().getTxRef())
+                .provider(PaymentProvider.FLUTTERWAVE)
+                .status(mapStatus(response.getDetails().getStatus().name()))
+                .build();
     }
 
     @Override
@@ -185,7 +182,7 @@ public class FlutterWaveService implements PaymentService {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        log.info("");
+        log.info("Initializing flutterWave properties set.");
     }
 }
 

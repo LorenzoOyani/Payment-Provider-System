@@ -1,10 +1,10 @@
 package org.example.paymentgateway.mapper;
 
 import org.example.paymentgateway.dto.PaymentResponse;
-import org.example.paymentgateway.entities.Currency;
+import org.example.paymentgateway.enums.Currency;
 import org.example.paymentgateway.entities.Payment;
 import org.example.paymentgateway.entities.PaymentDto;
-import org.example.paymentgateway.entities.PaymentStatus;
+import org.example.paymentgateway.enums.PaymentStatus;
 import org.mapstruct.*;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +18,6 @@ import java.util.Map;
 
 
 )
-
 public interface PaymentMapper {
 
 

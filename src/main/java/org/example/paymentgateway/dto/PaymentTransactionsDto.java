@@ -1,7 +1,7 @@
 package org.example.paymentgateway.dto;
 
-import org.example.paymentgateway.entities.Currency;
-import org.example.paymentgateway.entities.PaymentProvider;
+import org.example.paymentgateway.enums.Currency;
+import org.example.paymentgateway.enums.PaymentProvider;
 import org.example.paymentgateway.entities.User;
 
 import java.math.BigDecimal;

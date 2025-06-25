@@ -1,10 +1,13 @@
 package org.example.paymentgateway.entities;
 
 import jakarta.persistence.*;
+import org.example.paymentgateway.enums.RiskLevel;
+import org.example.paymentgateway.enums.UserStatus;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.io.Serial;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -14,8 +17,15 @@ import java.util.stream.Collectors;
 
 //@Getter
 @Entity
-@Table(name = "users")
+@Table(name = "users"
+        , uniqueConstraints = {
+        @UniqueConstraint(columnNames = "firstName"),
+        @UniqueConstraint(columnNames = "email")
+})
 public class User implements UserDetails {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,6 +40,16 @@ public class User implements UserDetails {
     @Basic(optional = false)
     private String lastName;
 
+    private String username;
+
+    public static long getSerialVersionUID() {
+        return serialVersionUID;
+    }
+
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
     private String password;
 
@@ -73,6 +93,10 @@ public class User implements UserDetails {
         return authorities;
     }
 
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+
     @Override
     public String getPassword() {
         return password;
@@ -80,7 +104,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return password;
+        return username;
     }
 
     @Override
@@ -120,6 +144,8 @@ public class User implements UserDetails {
     public String getLastName() {
         return lastName;
     }
+
+//
 
     public Long getId() {
         return id;
@@ -166,5 +192,49 @@ public class User implements UserDetails {
         return roles.stream().flatMap(role -> role.getPermission().stream())
                 .map(Permission::getName)
                 .collect(Collectors.toSet());
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setUserStatus(UserStatus userStatus) {
+        this.userStatus = userStatus;
+    }
+
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
+    }
+
+    public void setRiskLevel(RiskLevel riskLevel) {
+        this.riskLevel = riskLevel;
+    }
+
+    public void setOrganizationId(String organizationId) {
+        this.organizationId = organizationId;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

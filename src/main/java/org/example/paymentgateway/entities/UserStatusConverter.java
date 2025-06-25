@@ -2,6 +2,7 @@ package org.example.paymentgateway.entities;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
+import org.example.paymentgateway.enums.UserStatus;
 
 @Converter(autoApply = true)
 public class UserStatusConverter implements AttributeConverter<UserStatus, Boolean> {

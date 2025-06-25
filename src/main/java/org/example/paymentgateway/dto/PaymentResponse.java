@@ -1,7 +1,7 @@
 package org.example.paymentgateway.dto;
 
-import org.example.paymentgateway.entities.PaymentProvider;
-import org.example.paymentgateway.entities.PaymentStatus;
+import org.example.paymentgateway.enums.PaymentProvider;
+import org.example.paymentgateway.enums.PaymentStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

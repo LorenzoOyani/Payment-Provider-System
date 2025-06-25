@@ -1,4 +1,4 @@
-package org.example.paymentgateway.services;
+package org.example.paymentgateway.security;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import jakarta.annotation.Nonnull;

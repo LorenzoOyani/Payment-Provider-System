@@ -1,6 +1,4 @@
-package org.example.paymentgateway.entities;
-
-import lombok.Getter;
+package org.example.paymentgateway.enums;
 
 public enum UserStatus {
     ACTIVE(true),

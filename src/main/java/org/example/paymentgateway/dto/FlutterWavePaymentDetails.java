@@ -1,8 +1,7 @@
 package org.example.paymentgateway.dto;
 
-import lombok.Data;
 import org.example.paymentgateway.entities.Customer;
-import org.example.paymentgateway.entities.PaymentStatus;
+import org.example.paymentgateway.enums.PaymentStatus;
 
 public class FlutterWavePaymentDetails {
     private String link; /// link for redirection

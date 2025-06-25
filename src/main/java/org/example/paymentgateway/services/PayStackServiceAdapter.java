@@ -2,10 +2,14 @@ package org.example.paymentgateway.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import org.example.paymentgateway.dto.InitializePaymentResponse;
 import org.example.paymentgateway.dto.PayStackResponse;
 import org.example.paymentgateway.dto.PaymentRequest;
 import org.example.paymentgateway.dto.PaymentResponse;
+import org.example.paymentgateway.repositories.PaymentProviderHealthChecks;
+import org.example.paymentgateway.repositories.PaymentProviderValidator;
+import org.example.paymentgateway.services.paymentServices.PaymentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +36,6 @@ public class PayStackServiceAdapter implements PaymentService, PaymentProviderVa
     private String payStackPublicKey;
 
     private final PayStackService payStackService;
-    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
     private static final int HEALTH_CHECK_TIME_OUT_COUNT = 5000;
@@ -40,10 +43,14 @@ public class PayStackServiceAdapter implements PaymentService, PaymentProviderVa
 
 
     @Autowired
-    public PayStackServiceAdapter(PayStackService payStackService, RestTemplate restTemplate, ObjectMapper objectMapper) {
+    public PayStackServiceAdapter(PayStackService payStackService, ObjectMapper objectMapper) {
         this.payStackService = payStackService;
-        this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
+    }
+
+    @PostConstruct
+    public void init() {
+        this.validateConfiguration();
     }
 
     @Override

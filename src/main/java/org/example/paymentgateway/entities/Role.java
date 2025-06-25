@@ -31,7 +31,7 @@ public class Role {
             joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
-    private Set<Permission> permission = new HashSet<>();
+    private final Set<Permission> permission = new HashSet<>();
 
 
     @Column(name = "organization_id")
@@ -58,5 +58,9 @@ public class Role {
 
     public Set<Permission> getPermission() {
         return permission;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

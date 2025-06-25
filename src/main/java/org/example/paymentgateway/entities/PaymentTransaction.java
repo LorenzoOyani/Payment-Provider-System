@@ -1,6 +1,8 @@
 package org.example.paymentgateway.entities;
 
 import jakarta.persistence.*;
+import org.example.paymentgateway.enums.PaymentProvider;
+import org.example.paymentgateway.enums.PaymentStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

@@ -1,4 +1,4 @@
-package org.example.paymentgateway.services;
+package org.example.paymentgateway.services.paymentServices;
 
 import org.example.paymentgateway.dto.InitializePaymentResponse;
 import org.example.paymentgateway.dto.PaymentResponse;

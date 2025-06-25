@@ -3,6 +3,9 @@ package org.example.paymentgateway.entities;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import org.example.paymentgateway.configuration.DataBaseConverters;
+import org.example.paymentgateway.enums.Currency;
+import org.example.paymentgateway.enums.PaymentProvider;
+import org.example.paymentgateway.enums.PaymentStatus;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 

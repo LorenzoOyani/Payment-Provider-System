@@ -1,4 +1,4 @@
-package org.example.paymentgateway.services;
+package org.example.paymentgateway.services.paymentServices;
 
 import jakarta.transaction.Transactional;
 import org.example.paymentgateway.dto.InitializePaymentResponse;
@@ -6,6 +6,8 @@ import org.example.paymentgateway.dto.PaymentRequest;
 import org.example.paymentgateway.dto.PaymentResponse;
 import org.example.paymentgateway.dto.PaymentTransactionsDto;
 import org.example.paymentgateway.entities.*;
+import org.example.paymentgateway.enums.PaymentProvider;
+import org.example.paymentgateway.enums.PaymentStatus;
 import org.example.paymentgateway.exception.PaymentException;
 import org.example.paymentgateway.mapper.PaymentMapper;
 import org.example.paymentgateway.mapper.PaymentTransactionMapper;
@@ -230,6 +232,14 @@ public class PaymentServiceImpl implements PaymentService {
         }
         if (paymentServiceFactory == null) {
             throw new IllegalStateException("payment factory must be configured");
+        }
+
+        try{
+            paymentServiceFactory.validateProviders();
+            log.info("All payment providers validated successfully");
+        }catch(Exception e){
+            log.info("validation failed for providers with message {}",e.getMessage() );
+            throw e;
         }
 
     }

@@ -3,7 +3,7 @@ package org.example.paymentgateway.controller;
 import org.example.paymentgateway.dto.InitializePaymentResponse;
 import org.example.paymentgateway.dto.PaymentRequest;
 import org.example.paymentgateway.exception.PaymentException;
-import org.example.paymentgateway.services.PaymentServiceImpl;
+import org.example.paymentgateway.services.paymentServices.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +24,7 @@ public class PaymentController {
     }
 
 
-    @PostMapping("/initiate")
+    @PostMapping("/initialize")
     public ResponseEntity<InitializePaymentResponse> initiatePayment(@RequestBody PaymentRequest paymentRequest) {
         try {
             InitializePaymentResponse response = paymentServiceImpl.createPayment(paymentRequest);

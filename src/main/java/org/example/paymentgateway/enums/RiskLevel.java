@@ -1,4 +1,4 @@
-package org.example.paymentgateway.entities;
+package org.example.paymentgateway.enums;
 
 public enum RiskLevel {
     LOW,
