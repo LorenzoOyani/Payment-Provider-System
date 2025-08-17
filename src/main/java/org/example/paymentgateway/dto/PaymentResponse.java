@@ -21,7 +21,7 @@ public class PaymentResponse {
     private final PaymentProvider paymentProvider;
 
     public PaymentResponse(Builder builder) {
-        this.isSuccess = builder.isSuccess;  // Fixed: removed static reference
+        this.isSuccess = builder.isSuccess;
         this.paymentId = builder.paymentId;
         this.status = builder.status;
         this.message = builder.message;
@@ -54,7 +54,6 @@ public class PaymentResponse {
         private LocalDateTime updated_at;
         private PaymentProvider paymentProvider;
 
-        // Added missing isSuccess method
         public Builder isSuccess(boolean isSuccess) {
             this.isSuccess = isSuccess;
             return this;

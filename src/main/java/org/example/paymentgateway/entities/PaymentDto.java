@@ -15,7 +15,7 @@ import java.util.Map;
 
 
 public class PaymentDto {
-    private Long paymentId;
+    private String transactionId;
     private BigDecimal amount;
     private Currency currency;
     private PaymentProvider provider;
@@ -132,6 +132,7 @@ public class PaymentDto {
     }
 
     public static class Builder {
+        private String transactionId;
         private BigDecimal amount;
         private Currency currency;
         private PaymentProvider provider;
@@ -140,6 +141,7 @@ public class PaymentDto {
         private String customerEmail;
         private String providerReference;
         private Map<String, Object> metaData;
+        private LocalDateTime createdAt;
         private User user;
 
         public Map<String, Object> getMetaData() {
@@ -195,9 +197,18 @@ public class PaymentDto {
             this.metaData = metaData;
             return this;
         }
+        public Builder withTransactionId(String transactionId){
+            this.transactionId = transactionId;
+            return this;
+        }
+        public Builder withCreatedAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
 
         public PaymentDto build() {
             PaymentDto paymentDto = new PaymentDto();
+            paymentDto.transactionId = this.transactionId;
             paymentDto.setAmount(this.amount);
             paymentDto.setCurrency(this.currency);
             paymentDto.setProvider(this.provider);
@@ -206,6 +217,7 @@ public class PaymentDto {
             paymentDto.setCustomerEmail(this.customerEmail);
             paymentDto.setProviderReference(this.providerReference);
             paymentDto.setMetaData(this.metaData);
+            paymentDto.setCreated_at(this.createdAt);
             return paymentDto;
 
         }

@@ -7,6 +7,7 @@ import org.example.paymentgateway.configuration.PayStackProperties;
 import org.example.paymentgateway.dto.InitializePaymentResponse;
 import org.example.paymentgateway.dto.PaymentRequest;
 import org.example.paymentgateway.dto.PaymentResponse;
+import org.example.paymentgateway.dto.PaymentVerificationResponse;
 import org.example.paymentgateway.entities.*;
 import org.example.paymentgateway.enums.Currency;
 import org.example.paymentgateway.enums.PaymentProvider;
@@ -20,7 +21,6 @@ import org.example.paymentgateway.services.paymentServices.PaymentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -80,6 +80,10 @@ public class PayStackService implements PaymentService {
             paymentReqBody.put("amount", amountInKobo);
             paymentReqBody.put("email", request.getCustomerEmail() != null ? request.getCustomerEmail() : "");
             paymentReqBody.put("metadata", request.getMetadata() != null ? request.getMetadata() : Collections.emptyMap());
+            paymentReqBody.put("currency", request.getCurrency());
+             paymentReqBody.put("reference", request.getReference());
+             paymentReqBody.put("callback_url", request.getGetCallBackUrl());
+
 
             RequestBody body = RequestBody.create(
                     objectMapper.writeValueAsString(paymentReqBody),
@@ -120,11 +124,14 @@ public class PayStackService implements PaymentService {
                         .withReference(getSafeFromMap(paymentData, "reference", String.class))
                         .withAmount(getSafeFromMap(paymentData, "amount", BigDecimal.class))
                         .withCustomerEmail(request.getCustomerEmail())
-                        .withStatus("success".equalsIgnoreCase(getSafeFromMap(paymentData, "status".toUpperCase(), String.class)) ? PaymentStatus.SUCCESS : PaymentStatus.FAILURE)
+                        .withStatus(PaymentStatus.PENDING)
                         .withProvider(PaymentProvider.PAYSTACK)
                         .withMetaData(getSafeFromMap(paymentData, "metadata", Map.class))
                         .withCurrency(Currency.NGN)
+                        .withTransactionId(getSafeFromMap(paymentData, "id",String.class))
+                        .withCreatedAt(LocalDateTime.now())
                         .build();
+
 
                 Payment payment = paymentMapper.toPayment(paymentDto);
                 payment.setUser(user);
@@ -188,7 +195,6 @@ public class PayStackService implements PaymentService {
 
         } else if (clazz == String.class) {
             return (T) value.toString();
-
         }
         throw new IllegalArgumentException(
                 String.format(
@@ -199,20 +205,19 @@ public class PayStackService implements PaymentService {
 
 
     @Override
-    public PaymentResponse verifyPayment(String paymentId) {
+    public PaymentResponse verifyPayment(String paymentReference) {
         // Validate input
-        if (paymentId == null || paymentId.isBlank()) {
+        if (paymentReference == null || paymentReference.isBlank()) {
             throw new PaymentException("Payment reference cannot be empty");
         }
 
         try {
-            Payment payment = paymentRepository.findPaymentByReference(paymentId)
-                    .orElseThrow(() -> new PaymentException("Payment not found with reference: " + paymentId));
+            Payment payment = paymentRepository.findPaymentByReference(paymentReference)
+                    .orElseThrow(() -> new PaymentException("Payment not found with reference: " + paymentReference));
 
             Request request = new Request.Builder()
-                    .url(properties.getUrl() + "/transaction/verify/" + paymentId)
+                    .url(properties.getUrl() + "/transaction/verify/" + paymentReference)
                     .get()
-                    .addHeader("Authorization", buildBearerToken()) // Fixed space after Bearer
                     .addHeader(AUTHORIZATION_HEADER, buildBearerToken())
                     .addHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE).build();
 
@@ -239,8 +244,21 @@ public class PayStackService implements PaymentService {
                         : PaymentStatus.FAILURE);
                 payment.setUpdatedAt(LocalDateTime.now());
                 paymentRepository.save(payment);
+                PaymentVerificationResponse.PaymentVerificationData paymentData=
+                PaymentVerificationResponse.PaymentVerificationData.builder()
+                        .withChannel((String) data.get("channel"))
+                        .withAmount(BigDecimal.valueOf(((Number) data.get("amount")).doubleValue() / 100))
+                        .withGatewayResponse((String) data.get("gateway"))
+                        .withReference(paymentReference)
+                        .withProvider(PaymentProvider.PAYSTACK)
+                        .withCurrency("NGN")
+                        .withPaidAt(LocalDateTime.now())
+                        .withStatus((String) data.get("status"))
+                        .withCurrency((String) data.get("currency"))
+                        .build();
 
-                return paymentMapper.toPaymentResponse(payment);
+                return paymentMapper.toPaymentResponse(paymentData);
+
             }
         } catch (IOException e) {
             log.error("failed with payment verification issues..");

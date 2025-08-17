@@ -4,7 +4,9 @@ public enum PaymentStatus {
 
     PENDING("pending"),
     SUCCESS("success"),
-    FAILURE("failure");
+    FAILURE("failure"),
+    CANCELLED("cancelled"),
+    REFUNDED("refunded");
 
 
     private final String value;
@@ -13,5 +15,8 @@ public enum PaymentStatus {
         this.value = value;
 
     };
+    public String getValue() {
+        return value;
+    }
 
 }

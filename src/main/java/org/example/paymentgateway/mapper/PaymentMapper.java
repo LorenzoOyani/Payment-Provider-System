@@ -1,6 +1,7 @@
 package org.example.paymentgateway.mapper;
 
 import org.example.paymentgateway.dto.PaymentResponse;
+import org.example.paymentgateway.dto.PaymentVerificationResponse;
 import org.example.paymentgateway.enums.Currency;
 import org.example.paymentgateway.entities.Payment;
 import org.example.paymentgateway.entities.PaymentDto;
@@ -39,7 +40,7 @@ public interface PaymentMapper {
 
 
 
-    PaymentResponse toPaymentResponse(Payment payment);
+    PaymentResponse toPaymentResponse(PaymentVerificationResponse.PaymentVerificationData payment);
 
     @Named("mapMetaData")
     @SuppressWarnings("unchecked")

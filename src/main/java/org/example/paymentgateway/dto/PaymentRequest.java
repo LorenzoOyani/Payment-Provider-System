@@ -23,6 +23,7 @@ public class PaymentRequest {
 
 
 
+
     // Getters
     public BigDecimal getAmount() {
         return amount;

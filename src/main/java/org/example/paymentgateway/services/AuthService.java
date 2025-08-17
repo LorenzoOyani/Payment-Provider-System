@@ -71,9 +71,10 @@ public class AuthService {
     public Map<String, Object> registerUser(UserRegistration userRegistration) {
         final Map<String, Object> response = new HashMap<>();
         if (userRegistration == null || userRegistration.getUsername() == null || userRegistration.getPassword() == null || !userRegistration.isPassWordMatch()) {
-            return Collections.emptyMap();
+            response.put("status", false);
+            response.put("message", "invalid validation data");
+            return response;
         }
-
         try {
             final String username = userRegistration.getUsername();
             final String email = userRegistration.getEmail();

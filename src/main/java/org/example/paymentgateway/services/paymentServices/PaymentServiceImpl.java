@@ -1,26 +1,21 @@
 package org.example.paymentgateway.services.paymentServices;
 
+import io.github.resilience4j.retry.annotation.Retry;
 import jakarta.transaction.Transactional;
-import org.example.paymentgateway.dto.InitializePaymentResponse;
-import org.example.paymentgateway.dto.PaymentRequest;
-import org.example.paymentgateway.dto.PaymentResponse;
-import org.example.paymentgateway.dto.PaymentTransactionsDto;
+import org.example.paymentgateway.dto.*;
 import org.example.paymentgateway.entities.*;
 import org.example.paymentgateway.enums.PaymentProvider;
 import org.example.paymentgateway.enums.PaymentStatus;
 import org.example.paymentgateway.exception.PaymentException;
+import org.example.paymentgateway.helpers.UserAuthenticationService;
 import org.example.paymentgateway.mapper.PaymentMapper;
 import org.example.paymentgateway.mapper.PaymentTransactionMapper;
 import org.example.paymentgateway.repositories.PaymentRepository;
 import org.example.paymentgateway.repositories.PaymentTransactionRepository;
-import org.example.paymentgateway.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
@@ -38,19 +33,19 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentServiceFactory paymentServiceFactory;
     private final PaymentMapper paymentMapper;
     private final PaymentRepository paymentRepository;
-    private final UserRepository userRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final PaymentTransactionMapper paymentTransactionMapper;
+    private final UserAuthenticationService userAuthentication;
 
 
     @Autowired
-    PaymentServiceImpl(PaymentServiceFactory paymentServiceFactory, PaymentMapper paymentMapper, PaymentRepository paymentRepository, UserRepository userRepository, PaymentTransactionRepository paymentTransactionRepository, PaymentTransactionMapper paymentTransactionMapper) {
+    PaymentServiceImpl(PaymentServiceFactory paymentServiceFactory, PaymentMapper paymentMapper, PaymentRepository paymentRepository, PaymentTransactionRepository paymentTransactionRepository, PaymentTransactionMapper paymentTransactionMapper, UserAuthenticationService userAuthentication) {
         this.paymentServiceFactory = paymentServiceFactory;
         this.paymentMapper = paymentMapper;
         this.paymentRepository = paymentRepository;
-        this.userRepository = userRepository;
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.paymentTransactionMapper = paymentTransactionMapper;
+        this.userAuthentication = userAuthentication;
     }
 
 
@@ -71,7 +66,7 @@ public class PaymentServiceImpl implements PaymentService {
         PaymentProvider paymentProvider = Optional.of(request.getPaymentProvider())
                 .orElse(PaymentProvider.PAYSTACK);
 
-        User user = findUserByEmail(request.getCustomerEmail());
+        User user = userAuthentication.getCurrentAuthenticatedUser();
         try {
             PaymentService paymentServiceProvider = paymentServiceFactory.getPaymentProviderService(paymentProvider);
 
@@ -89,13 +84,12 @@ public class PaymentServiceImpl implements PaymentService {
             log.error("error persisting to db {}", e.getMessage());
             throw new PaymentException("error processing payment with message  " + e.getMessage());
         }
-
     }
 
-    private InitializePaymentResponse processPaymentCreation(PaymentRequest request, PaymentService paymentServiceProvider, PaymentTransaction transaction) {
+    private InitializePaymentResponse processPaymentCreation(PaymentRequest request, PaymentService paymentService, PaymentTransaction transaction) {
 
         try {
-            InitializePaymentResponse response = paymentServiceProvider.createPayment(request);
+            InitializePaymentResponse response = paymentService.createPayment(request);
 
             transaction.setReference(response.getReference());
             transaction.setStatus(PaymentStatus.PENDING);
@@ -135,7 +129,6 @@ public class PaymentServiceImpl implements PaymentService {
 
 
         return paymentTransactionMapper.paymentTransactionMapper(transactionsDto);
-
     }
 
     private Payment createPaymentForDb(PaymentRequest request, PaymentProvider paymentProvider, User user) {
@@ -179,10 +172,6 @@ public class PaymentServiceImpl implements PaymentService {
         return "PAY_" + UUID.randomUUID().toString().toLowerCase();
     }
 
-    private User findUserByEmail(String customerEmail) {
-        return userRepository.findByEmail(customerEmail)
-                .orElseThrow(() -> new UsernameNotFoundException(String.format("user with %s not found", customerEmail)));
-    }
 
     @Override
     public boolean verification(String paymentId) {
@@ -195,32 +184,76 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new IllegalStateException(String.format("can't find a transaction with the given Id of %s ", paymentId)));
 
 
-        User currentUser = getAuthenticatedUser();
+        User currentUser = userAuthentication.getCurrentAuthenticatedUser();
 
 
         if (!hasPermissionToViewTransaction(paymentTransaction, currentUser)) {
             throw new IllegalStateException("user does not have permission to view transaction");
         }
 
-        return null;
+        try {
+            ///  get the appropriate payment provider
+            /// verify payment with provider
+            PaymentService paymentProviderService = paymentServiceFactory.getPaymentProviderService(paymentTransaction.getPaymentProvider());
+
+            PaymentResponse paymentProviderResponse = paymentProviderService.verifyPayment(paymentId);
+
+            updateTransactionStatus(paymentTransaction, paymentProviderResponse);
+
+            log.info("Successfully verified payment with Id, and verification status {}, {}", paymentId, paymentTransaction.getStatus());
+            return paymentProviderResponse;
+
+        } catch (Exception e) {
+            log.error("Error verifying payment with paymentId {} and message {}", paymentId, e.getMessage());
+            paymentTransaction.setStatus(PaymentStatus.FAILURE);
+            paymentTransactionRepository.save(paymentTransaction);
+            throw new PaymentException("error verifying payment with paymentId " + paymentId, e);
+        }
+
 
     }
 
-    private User getAuthenticatedUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
+    private void updateTransactionStatus(PaymentTransaction paymentTransaction, PaymentResponse paymentProviderResponse) {
+        PaymentStatus newPaymentStatus = mapStatusToLocalObject(paymentProviderResponse.getStatus());
 
-        return userRepository.findByEmail(username).orElseThrow(() -> new IllegalStateException("user with %s not found in database " + username));
+        if (!newPaymentStatus.equals(paymentTransaction.getStatus())) {
+            paymentTransaction.setStatus(newPaymentStatus);
+        }
+
+        if (paymentProviderResponse.getPaymentId() != null) {
+            paymentTransaction.setTransactionId(paymentProviderResponse.getPaymentId());
+
+        }
+        if (paymentProviderResponse.getUpdated_at() != null) {
+            paymentTransaction.setUpdatedAt(paymentProviderResponse.getUpdated_at());
+        }
+        paymentTransactionRepository.save(paymentTransaction);
+        log.info("payment transaction status updated successfully with reference, and new status, {}, {}", paymentTransaction.getReference(), newPaymentStatus);
     }
+
+    private PaymentStatus mapStatusToLocalObject(PaymentStatus status) {
+        if (status == null) {
+            return PaymentStatus.PENDING;
+        }
+        return switch (status) {
+            case SUCCESS -> PaymentStatus.SUCCESS;
+            case FAILURE -> PaymentStatus.FAILURE;
+            case PENDING -> PaymentStatus.PENDING;
+            default -> {
+                log.warn("unknown payment status: {}", status);
+                yield PaymentStatus.PENDING;
+            }
+        };
+    }
+
 
     private boolean hasPermissionToViewTransaction(PaymentTransaction paymentTransaction, User currentUser) {
 
         if (paymentTransaction.getId().equals(currentUser.getId())) {
             return true;
         }
-
         return currentUser.getRoles().stream()
-                .anyMatch(role -> "ADMIN".equals(role.getName()) || "CUSTOMER".equals(role.getName()));
+                .anyMatch(role -> currentUser.hasRole("ROLE_" + role.getName()));
 
     }
 
@@ -234,11 +267,11 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalStateException("payment factory must be configured");
         }
 
-        try{
+        try {
             paymentServiceFactory.validateProviders();
             log.info("All payment providers validated successfully");
-        }catch(Exception e){
-            log.info("validation failed for providers with message {}",e.getMessage() );
+        } catch (Exception e) {
+            log.info("validation failed for providers with message {}", e.getMessage());
             throw e;
         }
 

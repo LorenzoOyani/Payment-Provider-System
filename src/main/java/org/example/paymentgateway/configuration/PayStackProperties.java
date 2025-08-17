@@ -13,6 +13,7 @@ public class PayStackProperties {
         return publicKey;
     }
 
+
     public void setPublicKey(String publicKey) {
         this.publicKey = publicKey;
     }

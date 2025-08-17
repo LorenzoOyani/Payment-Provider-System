@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Component
 public class PaymentServiceFactory {
@@ -20,7 +22,8 @@ public class PaymentServiceFactory {
     private final PayStackServiceAdapter payStackServiceAdapter;
     private final FlutterWaveAdapter flutterWaveAdapter;
 
-    private Map<PaymentProvider, PaymentService> map;
+    private final Map<PaymentProvider, PaymentService> providerMap = new ConcurrentHashMap<>();
+    private final Map<PaymentProvider, Boolean> providerHealthCheck = new ConcurrentHashMap<>();
 
     /// A map-registry
 
@@ -32,17 +35,36 @@ public class PaymentServiceFactory {
 
     @PostConstruct
     public void init() {
-        map = new HashMap<>();
-        map.put(PaymentProvider.PAYSTACK, payStackServiceAdapter);
-        map.put(PaymentProvider.FLUTTERWAVE, flutterWaveAdapter);
+        log.info("initializing payment services...");
+        registerProviders();
+        validateProviders();
+    }
+
+    private void registerProviders() {
+        providerMap.put(PaymentProvider.PAYSTACK, payStackServiceAdapter);
+        providerMap.put(PaymentProvider.FLUTTERWAVE, flutterWaveAdapter);
+
+        log.info("registered payment provider with service name, {}",
+                providerMap.keySet().stream()
+                        .map(PaymentProvider::getName)
+                        .collect(Collectors.joining(","))
+        );
     }
 
     public PaymentService getPaymentProviderService(PaymentProvider paymentProvider) {
-        PaymentService paymentService = map.get(paymentProvider);  ///key-value mapping.
-        if (paymentService == null) {
-            throw new PaymentException("no such payment provider: " + paymentProvider);
+        if (paymentProvider == null) {
+            throw new IllegalArgumentException("paymentProvider cannot be null");
         }
 
+        PaymentService paymentService = providerMap.get(paymentProvider);  ///key-value mapping.
+        if (paymentService == null) {
+            throw new PaymentException("Unsupported payment provider: " + paymentProvider);
+        }
+        Boolean isHealthy = providerHealthCheck.get(paymentProvider);
+        if (Boolean.FALSE.equals(isHealthy)) {
+            log.warn("Payment provider {} is marked as unhealthy, but returning service", paymentProvider);
+            throw new IllegalStateException("payment provider health check failed for provider: " + paymentProvider.name());
+        }
         return paymentService;
     }
 
@@ -51,13 +73,14 @@ public class PaymentServiceFactory {
         final List<String> failedProviders = new ArrayList<>();
         final List<String> successfulProviders = new ArrayList<>();
 
-        for (Map.Entry<PaymentProvider, PaymentService> entry : map.entrySet()) {
+        for (Map.Entry<PaymentProvider, PaymentService> entry : providerMap.entrySet()) {
             PaymentProvider paymentProvider = entry.getKey();
             PaymentService paymentService = entry.getValue();
 
             try {
                 validateAProviderService(paymentProvider, paymentService);
                 successfulProviders.add(paymentProvider.name());
+                providerHealthCheck.put(paymentProvider, true);
                 log.info("provider {} successfully validated", paymentProvider.name());
             } catch (Exception e) {
                 failedProviders.add(paymentProvider.name());
@@ -101,6 +124,31 @@ public class PaymentServiceFactory {
             }
         } catch (Exception e) {
             log.warn("Health checks failed for provider {}", paymentProvider.name(), e);
+            throw new IllegalStateException(
+                    String.format("Health checks failed for providers %s: %s",
+                            paymentProvider.name(), e.getMessage()), e);
         }
+    }
+
+    public Set<PaymentProvider> getAllProviders() {
+        return Collections.unmodifiableSet(providerMap.keySet());
+    }
+
+    public Set<PaymentProvider> getHealthyProviders() {
+        return providerHealthCheck.entrySet().stream()
+                .filter(providers -> Boolean.TRUE.equals(providers.getValue()))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+
+    }
+
+    public boolean isProviderAvailable(PaymentProvider paymentProvider) {
+        return providerMap.containsKey(paymentProvider);
+    }
+
+    public int getHealthProviderCount() {
+        return (int) providerHealthCheck.values().stream()
+                .filter(Boolean.TRUE::equals)
+                .count();
     }
 }
